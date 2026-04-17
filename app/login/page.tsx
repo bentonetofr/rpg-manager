@@ -4,8 +4,6 @@ import { useState } from "react";
 import { createClient } from "../../utils/supabase/client";
 
 export default function LoginPage() {
-  const supabase = createClient();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -22,6 +20,8 @@ export default function LoginPage() {
       return;
     }
 
+    const supabase = createClient();
+
     if (mode === "signup") {
       const { error } = await supabase.auth.signUp({
         email,
@@ -34,7 +34,9 @@ export default function LoginPage() {
         return;
       }
 
-      setMessage("Conta criada. Se o Supabase pedir confirmação por email, confirme antes de entrar.");
+      setMessage(
+        "Conta criada. Se o Supabase pedir confirmação por email, confirme antes de entrar."
+      );
       setLoading(false);
       return;
     }
