@@ -21,42 +21,52 @@ export default function Home() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
 
   async function loadPage() {
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (userError) {
-      console.error("Erro ao carregar usuário:", userError);
-    }
+      if (userError) {
+        console.error("Erro ao carregar usuário:", userError);
+      }
 
-    if (user) {
-      setUser({
-        id: user.id,
-        email: user.email,
-      });
-    } else {
-      setUser(null);
-    }
+      if (user) {
+        setUser({
+          id: user.id,
+          email: user.email,
+        });
+      } else {
+        setUser(null);
+      }
 
-    const { data, error } = await supabase
-      .from("campaigns")
-      .select("*")
-      .order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("campaigns")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Erro ao carregar campanhas:", error);
-      setCampaigns([]);
+      if (error) {
+        console.error("Erro ao carregar campanhas:", error);
+        setPageError("Não foi possível carregar as campanhas.");
+        setCampaigns([]);
+        setLoading(false);
+        return;
+      }
+
+      setCampaigns(data || []);
       setLoading(false);
-      return;
+    } catch (error) {
+      console.error("Erro geral ao carregar a página:", error);
+      setPageError(
+        "Erro de configuração do Supabase no site publicado. Verifique as variáveis da Vercel e faça novo deploy."
+      );
+      setLoading(false);
     }
-
-    setCampaigns(data || []);
-    setLoading(false);
   }
 
   useEffect(() => {
@@ -137,156 +147,170 @@ export default function Home() {
           </div>
         </section>
 
-        <section>
-          <div
+        {pageError ? (
+          <section
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 18,
-              gap: 12,
-              flexWrap: "wrap",
+              background: "rgba(127, 29, 29, 0.35)",
+              border: "1px solid rgba(252, 165, 165, 0.35)",
+              borderRadius: 18,
+              padding: 24,
+              color: "#fecaca",
             }}
           >
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 24,
-                fontWeight: 800,
-              }}
-            >
-              Campanhas
-            </h2>
-
-            <span
-              style={{
-                color: "#94a3b8",
-                fontSize: 14,
-              }}
-            >
-              {loading
-                ? "Carregando..."
-                : `${campaigns.length} campanha${campaigns.length === 1 ? "" : "s"}`}
-            </span>
-          </div>
-
-          {loading ? (
+            {pageError}
+          </section>
+        ) : (
+          <section>
             <div
               style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px dashed rgba(255,255,255,0.15)",
-                borderRadius: 18,
-                padding: 24,
-                color: "#cbd5e1",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 18,
+                gap: 12,
+                flexWrap: "wrap",
               }}
             >
-              Carregando campanhas...
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 24,
+                  fontWeight: 800,
+                }}
+              >
+                Campanhas
+              </h2>
+
+              <span
+                style={{
+                  color: "#94a3b8",
+                  fontSize: 14,
+                }}
+              >
+                {loading
+                  ? "Carregando..."
+                  : `${campaigns.length} campanha${campaigns.length === 1 ? "" : "s"}`}
+              </span>
             </div>
-          ) : campaigns.length > 0 ? (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: 16,
-              }}
-            >
-              {campaigns.map((campaign) => {
-                const isOwner = !!user && campaign.owner_id === user.id;
 
-                return (
-                  <div
-                    key={campaign.id}
-                    style={{
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: 18,
-                      padding: 18,
-                      boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-                    }}
-                  >
-                    <div style={{ marginBottom: 16 }}>
-                      <h3
-                        style={{
-                          margin: 0,
-                          fontSize: 20,
-                          fontWeight: 800,
-                          marginBottom: 8,
-                        }}
-                      >
-                        {campaign.name}
-                      </h3>
+            {loading ? (
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px dashed rgba(255,255,255,0.15)",
+                  borderRadius: 18,
+                  padding: 24,
+                  color: "#cbd5e1",
+                }}
+              >
+                Carregando campanhas...
+              </div>
+            ) : campaigns.length > 0 ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: 16,
+                }}
+              >
+                {campaigns.map((campaign) => {
+                  const isOwner = !!user && campaign.owner_id === user.id;
 
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "#94a3b8",
-                          fontSize: 13,
-                          wordBreak: "break-all",
-                        }}
-                      >
-                        ID: {campaign.id}
-                      </p>
-                    </div>
-
+                  return (
                     <div
+                      key={campaign.id}
                       style={{
-                        display: "flex",
-                        gap: 10,
-                        flexWrap: "wrap",
+                        background: "rgba(255,255,255,0.05)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        borderRadius: 18,
+                        padding: 18,
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
                       }}
                     >
-                      <Link
-                        href={`/campaign/${campaign.id}`}
+                      <div style={{ marginBottom: 16 }}>
+                        <h3
+                          style={{
+                            margin: 0,
+                            fontSize: 20,
+                            fontWeight: 800,
+                            marginBottom: 8,
+                          }}
+                        >
+                          {campaign.name}
+                        </h3>
+
+                        <p
+                          style={{
+                            margin: 0,
+                            color: "#94a3b8",
+                            fontSize: 13,
+                            wordBreak: "break-all",
+                          }}
+                        >
+                          ID: {campaign.id}
+                        </p>
+                      </div>
+
+                      <div
                         style={{
-                          textDecoration: "none",
-                          padding: "10px 14px",
-                          borderRadius: 10,
-                          background: "#2563eb",
-                          color: "white",
-                          fontWeight: 700,
-                          display: "inline-block",
+                          display: "flex",
+                          gap: 10,
+                          flexWrap: "wrap",
                         }}
                       >
-                        Abrir campanha
-                      </Link>
+                        <Link
+                          href={`/campaign/${campaign.id}`}
+                          style={{
+                            textDecoration: "none",
+                            padding: "10px 14px",
+                            borderRadius: 10,
+                            background: "#2563eb",
+                            color: "white",
+                            fontWeight: 700,
+                            display: "inline-block",
+                          }}
+                        >
+                          Abrir campanha
+                        </Link>
 
-                      {isOwner && (
-                        <form action={`/campaigns/${campaign.id}/delete`} method="post">
-                          <button
-                            type="submit"
-                            style={{
-                              padding: "10px 14px",
-                              borderRadius: 10,
-                              border: "1px solid #7f1d1d",
-                              background: "#450a0a",
-                              color: "#fecaca",
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Excluir
-                          </button>
-                        </form>
-                      )}
+                        {isOwner && (
+                          <form action={`/campaigns/${campaign.id}/delete`} method="post">
+                            <button
+                              type="submit"
+                              style={{
+                                padding: "10px 14px",
+                                borderRadius: 10,
+                                border: "1px solid #7f1d1d",
+                                background: "#450a0a",
+                                color: "#fecaca",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Excluir
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px dashed rgba(255,255,255,0.15)",
-                borderRadius: 18,
-                padding: 24,
-                color: "#cbd5e1",
-              }}
-            >
-              Nenhuma campanha criada ainda.
-            </div>
-          )}
-        </section>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px dashed rgba(255,255,255,0.15)",
+                  borderRadius: 18,
+                  padding: 24,
+                  color: "#cbd5e1",
+                }}
+              >
+                Nenhuma campanha criada ainda.
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </main>
   );
