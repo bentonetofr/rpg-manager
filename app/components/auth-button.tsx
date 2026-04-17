@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { createClient } from "../../utils/supabase/client";
 
 export default function AuthButton({
@@ -9,16 +10,15 @@ export default function AuthButton({
   isLoggedIn: boolean;
   email?: string;
 }) {
-  const supabase = createClient();
-
   async function handleLogout() {
+    const supabase = createClient();
     await supabase.auth.signOut();
     window.location.href = "/login";
   }
 
   if (!isLoggedIn) {
     return (
-      <a
+      <Link
         href="/login"
         style={{
           textDecoration: "none",
@@ -31,12 +31,19 @@ export default function AuthButton({
         }}
       >
         Entrar
-      </a>
+      </Link>
     );
   }
 
   return (
-    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        alignItems: "center",
+        flexWrap: "wrap",
+      }}
+    >
       <span style={{ color: "#cbd5e1", fontSize: 14 }}>
         {email || "Usuário logado"}
       </span>
