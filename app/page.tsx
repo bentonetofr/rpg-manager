@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { createClient } from "../utils/supabase/server";
+import { useEffect, useState } from "react";
+import { createClient } from "../utils/supabase/client";
 import AuthButton from "./components/auth-button";
 
 type Campaign = {
@@ -9,23 +12,56 @@ type Campaign = {
   created_at?: string;
 };
 
-export default async function Home() {
-  const supabase = await createClient();
+type UserInfo = {
+  id: string;
+  email?: string;
+};
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export default function Home() {
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const { data: campaigns, error } = await supabase
-    .from("campaigns")
-    .select("*")
-    .order("created_at", { ascending: false });
+  async function loadPage() {
+    const supabase = createClient();
 
-  if (error) {
-    console.error(error);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error("Erro ao carregar usuário:", userError);
+    }
+
+    if (user) {
+      setUser({
+        id: user.id,
+        email: user.email,
+      });
+    } else {
+      setUser(null);
+    }
+
+    const { data, error } = await supabase
+      .from("campaigns")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Erro ao carregar campanhas:", error);
+      setCampaigns([]);
+      setLoading(false);
+      return;
+    }
+
+    setCampaigns(data || []);
+    setLoading(false);
   }
 
-  const safeCampaigns: Campaign[] = campaigns || [];
+  useEffect(() => {
+    loadPage();
+  }, []);
 
   return (
     <main
@@ -128,11 +164,25 @@ export default async function Home() {
                 fontSize: 14,
               }}
             >
-              {safeCampaigns.length} campanha{safeCampaigns.length === 1 ? "" : "s"}
+              {loading
+                ? "Carregando..."
+                : `${campaigns.length} campanha${campaigns.length === 1 ? "" : "s"}`}
             </span>
           </div>
 
-          {safeCampaigns.length > 0 ? (
+          {loading ? (
+            <div
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px dashed rgba(255,255,255,0.15)",
+                borderRadius: 18,
+                padding: 24,
+                color: "#cbd5e1",
+              }}
+            >
+              Carregando campanhas...
+            </div>
+          ) : campaigns.length > 0 ? (
             <div
               style={{
                 display: "grid",
@@ -140,7 +190,7 @@ export default async function Home() {
                 gap: 16,
               }}
             >
-              {safeCampaigns.map((campaign) => {
+              {campaigns.map((campaign) => {
                 const isOwner = !!user && campaign.owner_id === user.id;
 
                 return (
