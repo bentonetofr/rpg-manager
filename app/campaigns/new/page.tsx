@@ -1,12 +1,9 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import { createClient } from "../../../utils/supabase/client";
 
 export default function NewCampaignPage() {
-  const supabase = createClient();
-
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,6 +11,8 @@ export default function NewCampaignPage() {
   async function handleCreate() {
     setLoading(true);
     setMessage("");
+
+    const supabase = createClient();
 
     const {
       data: { user },
